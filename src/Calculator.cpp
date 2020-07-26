@@ -80,8 +80,7 @@ calcstate_t Calculator::feed(char ch) {
         if (ch == '(') {
             if (this->exprStack.top() == NULL) {
                 this->exprStack.pop();
-                UnaryExpression *expr = new UnaryExpression();
-                this->exprStack.push(expr);
+                this->exprStack.push(new UnaryExpression());
             }
             this->exprStack.push(NULL);
             return calcstate_EXPR;
@@ -106,7 +105,7 @@ calcstate_t Calculator::feed(char ch) {
         }
         if (ch == ')') {
             this->aggregatePow();
-            this->aggregateUnary();
+            this->aggregateNeg();
             this->aggregate();
             return calcstate_BREAK;
         }
@@ -130,7 +129,7 @@ calcstate_t Calculator::feed(char ch) {
         }
         if (ch == ')') {
             this->aggregatePow();
-            this->aggregateUnary();
+            this->aggregateNeg();
             this->aggregate();
             return calcstate_BREAK;
         }
@@ -150,7 +149,7 @@ calcstate_t Calculator::feed(char ch) {
         }
         if (ch == ')') {
             this->aggregatePow();
-            this->aggregateUnary();
+            this->aggregateNeg();
             this->aggregate();
             return calcstate_BREAK;
         }
@@ -216,11 +215,11 @@ void Calculator::insertOp(char opch) {
 
     if (IS_ADD_SUB(opch)) {
         this->aggregatePow();
-        this->aggregateUnary();
+        this->aggregateNeg();
 
         IExpression *top = this->exprStack.top();
         BinaryExpression *expr;
-        if ((top->getType() == expr_BINARY) && (this->getOpState() == opstate_MUL_DIV)) {
+        if ((top->getType() == expr_BINARY) && (this->exprStack.size() > 1) && (this->getOpState() == opstate_MUL_DIV)) {
             this->aggregate();
             expr = new BinaryExpression(op, this->exprStack.top(), NULL);
         } else {
@@ -232,7 +231,7 @@ void Calculator::insertOp(char opch) {
     }
     if (IS_MUL_DIV(opch)) {
         this->aggregatePow();
-        this->aggregateUnary();
+        this->aggregateNeg();
 
         IExpression *top = this->exprStack.top();
         if (this->getOpState() == opstate_ADD_SUB) {
@@ -277,13 +276,18 @@ opstate_t Calculator::getOpState(void) {
             this->exprStack.pop();
             IExpression *self = this->exprStack.top();
             this->exprStack.push(top);
-            if (self->getType() == expr_BINARY) {
-                BinaryExpression *expr = reinterpret_cast<BinaryExpression *>(self);
-                if (IS_POW_OP(expr->getOp())) {
-                    return opstate_POW;
+            if (self != NULL) {
+                if (self->getType() == expr_BINARY) {
+                    BinaryExpression *expr = reinterpret_cast<BinaryExpression *>(self);
+                    if (IS_POW_OP(expr->getOp())) {
+                        return opstate_POW;
+                    }
+                } else if (self->getType() == expr_UNARY) {
+                    UnaryExpression *expr = reinterpret_cast<UnaryExpression *>(self);
+                    if (expr->isNegation()) {
+                        return opstate_NEG;
+                    }
                 }
-            } else if (self->getType() == expr_UNARY) {
-                return opstate_UNARY;
             }
         }
     }
@@ -308,18 +312,15 @@ void Calculator::aggregate(void) {
             }
             this->exprStack.push(self);
         } else {
-            throw "aggregating on a NULL expression";
+            this->exprStack.push(top);
         }
     } else {
         throw "trying to aggregate <2 sized expression stack";
     }
 }
 
-void Calculator::aggregateUnary(void) {
-    while ((this->exprStack.size() > 1) && (this->getOpState() == opstate_UNARY)) {
-        this->aggregate();
-    }
-    if (this->exprStack.size() > 1) {
+void Calculator::aggregateNeg(void) {
+    while ((this->exprStack.size() > 1) && (this->getOpState() == opstate_NEG)) {
         this->aggregate();
     }
 }
@@ -328,14 +329,11 @@ void Calculator::aggregatePow(void) {
     while ((this->exprStack.size() > 1) && (this->getOpState() == opstate_POW)) {
         this->aggregate();
     }
-    if (this->exprStack.size() > 1) {
-        this->aggregate();
-    }
 }
 
 void Calculator::aggregateAll(void) {
     this->aggregatePow();
-    this->aggregateUnary();
+    this->aggregateNeg();
     while (this->exprStack.size() > 1) {
         this->aggregate();
     }

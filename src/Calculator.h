@@ -17,7 +17,7 @@ enum opstate_t {
     opstate_ADD_SUB,
     opstate_MUL_DIV,
     opstate_POW,
-    opstate_UNARY
+    opstate_NEG
 };
 
 class Calculator {
@@ -44,7 +44,7 @@ private:
 
     void aggregate(void);
     void aggregatePow(void);
-    void aggregateUnary(void);
+    void aggregateNeg(void);
     void aggregateAll(void);
 
 };
