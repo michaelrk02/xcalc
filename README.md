@@ -18,7 +18,7 @@ For example, consider an expression: `A + B * (C + D) + E ^ F ^ (G - H)`. That w
       C   D     G   H
 ```
 
-This program uses the help of push-down automata in order to perform lexical analysis as well as syntax analysis.
+This program uses the help of push-down automata in order to perform syntax analysis.
 
 Example program output:
 ```
