@@ -81,6 +81,13 @@ calcstate_t Calculator::feed(char ch) {
             if (this->exprStack.top() == NULL) {
                 this->exprStack.pop();
                 this->exprStack.push(new UnaryExpression());
+            } else {
+                if (this->exprStack.top()->getType() == expr_UNARY) {
+                    UnaryExpression *expr = reinterpret_cast<UnaryExpression *>(this->exprStack.top());
+                    if (expr->isNegation()) {
+                        this->exprStack.push(new UnaryExpression());
+                    }
+                }
             }
             this->exprStack.push(NULL);
             return calcstate_EXPR;
